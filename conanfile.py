@@ -77,9 +77,27 @@ class LibmicrohttpdConan(ConanFile):
 
         shared_flags = "--disable-shared"
         if self.options.shared: shared_flags = "--enable-shared"
-       
 
-        configure_command = "cd %s && %s ./configure --enable-static %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string)
+	# add gnutls and gcrypt install paths
+        additional_opts = ""
+        if not self.options.disable_https:
+            gcrypt_path = ""
+            gnutls_path = ""
+            for path in self.deps_cpp_info.lib_paths:
+                if "gcrypt" in path:
+                    gcrypt_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
+                if "gnutls" in path:
+                    gnutls_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
+            additional_opts = "--with-libgcrypt-prefix=%s --with-gnutls=%s"%(gcrypt_path, gnutls_path)
+
+        for path in self.deps_cpp_info.include_paths:
+            if "nettle" in path:
+                nettle_include_path = path
+            elif "gmp" in path:
+                gmp_include_path = path
+
+        configure_command = "cd %s && %s ./configure --enable-static %s %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string, additional_opts)
+        
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
