@@ -78,7 +78,11 @@ class LibmicrohttpdConan(ConanFile):
                 self.output.info("Activated option! %s" % option_name)
                 config_options_string += " --%s" % option_name.replace("_", "-")
 
-        configure_command = "cd %s && %s ./configure --enable-static --disable-shared %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), config_options_string)
+        shared_flags = "--disable-shared"
+        if self.options.shared: shared_flags = "--enable-shared"
+       
+
+        configure_command = "cd %s && %s ./configure --enable-static %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string)
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
