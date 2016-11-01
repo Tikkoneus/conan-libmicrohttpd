@@ -96,7 +96,7 @@ class LibmicrohttpdConan(ConanFile):
             elif "gmp" in path:
                 gmp_include_path = path
 
-        configure_command = "cd %s && %s ./configure --enable-static %s %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string, additional_opts)
+        configure_command = "cd %s && %s ./configure --enable-messages --enable-static %s %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string, additional_opts)
         
         self.output.warn(configure_command)
         self.run(configure_command)
