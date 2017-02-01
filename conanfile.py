@@ -18,8 +18,7 @@ class LibmicrohttpdConan(ConanFile):
                "disable_dauth": [True, False],
                "disable_epoll": [True, False]}
     url = "http://github.com/DEGoodmanWilson/conan-libmicrohttpd"
-    #TODO disable_https should be False in the future
-    default_options = "shared=False", "disable_https=True", "disable_messages=False", \
+    default_options = "shared=False", "disable_https=False", "disable_messages=False", \
                       "disable_postprocessor=False", "disable_dauth=False", "disable_epoll=False"
 
     def source(self):
@@ -32,11 +31,9 @@ class LibmicrohttpdConan(ConanFile):
     def config(self):
         del self.settings.compiler.libcxx
 
-        if not self.options["disable-https"]:
-            pass
-            # for the moment these do not exist
-            # self.requires.add("gcrypt/1.7.3@DEGoodmanWilson/stable", private=False)
-            # self.requires.add("gnutls/3.5@DEGoodmanWilson/stable", private=False)
+        if not self.options.disable_https:
+            self.requires.add("libgcrypt/1.7.3@DEGoodmanWilson/testing", private=False)
+            self.requires.add("gnutls/3.4.16@DEGoodmanWilson/testing", private=False)
 
     def generic_env_configure_vars(self, verbose=False):
         """Reusable in any lib with configure!!"""
@@ -46,7 +43,7 @@ class LibmicrohttpdConan(ConanFile):
             return
 
         if self.settings.os == "Linux" or self.settings.os == "Macos":
-            libs = 'LIBS="%s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
+            libs = 'LIBS="-liconv %s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
             ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
             archflag = "-m32" if self.settings.arch == "x86" else ""
             cflags = 'CFLAGS="-fPIC %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags))
@@ -80,9 +77,27 @@ class LibmicrohttpdConan(ConanFile):
 
         shared_flags = "--disable-shared"
         if self.options.shared: shared_flags = "--enable-shared"
-       
 
-        configure_command = "cd %s && %s ./configure --enable-static %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string)
+	# add gnutls and gcrypt install paths
+        additional_opts = ""
+        if not self.options.disable_https:
+            gcrypt_path = ""
+            gnutls_path = ""
+            for path in self.deps_cpp_info.lib_paths:
+                if "gcrypt" in path:
+                    gcrypt_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
+                if "gnutls" in path:
+                    gnutls_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
+            additional_opts = "--with-libgcrypt-prefix=%s --with-gnutls=%s"%(gcrypt_path, gnutls_path)
+
+        for path in self.deps_cpp_info.include_paths:
+            if "nettle" in path:
+                nettle_include_path = path
+            elif "gmp" in path:
+                gmp_include_path = path
+
+        configure_command = "cd %s && %s ./configure --enable-messages --enable-static %s %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string, additional_opts)
+        
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
