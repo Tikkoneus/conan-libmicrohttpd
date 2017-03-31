@@ -32,8 +32,7 @@ class LibmicrohttpdConan(ConanFile):
         del self.settings.compiler.libcxx
 
         if not self.options.disable_https:
-            self.requires.add("libgcrypt/1.7.3@DEGoodmanWilson/testing", private=False)
-            self.requires.add("gnutls/3.4.16@DEGoodmanWilson/testing", private=False)
+            self.requires.add("gnutls/3.4.16@paulobrizolara/experimental", private=False)
 
     def generic_env_configure_vars(self, verbose=False):
         """Reusable in any lib with configure!!"""
