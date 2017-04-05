@@ -33,6 +33,7 @@ class LibmicrohttpdConan(ConanFile):
 
         if not self.options.disable_https:
             self.requires.add("gnutls/3.4.16@paulobrizolara/experimental", private=False)
+            self.requires.add("libgcrypt/1.7.3@DEGoodmanWilson/testing", private=False)
 
     def generic_env_configure_vars(self, verbose=False):
         """Reusable in any lib with configure!!"""
@@ -83,7 +84,8 @@ class LibmicrohttpdConan(ConanFile):
             gcrypt_path = ""
             gnutls_path = ""
             for path in self.deps_cpp_info.lib_paths:
-                if "gcrypt" in path:
+                print path
+                if "libgcrypt" in path:
                     gcrypt_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
                 if "gnutls" in path:
                     gnutls_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
