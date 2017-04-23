@@ -44,6 +44,8 @@ class LibmicrohttpdConan(ConanFile):
 
         if self.settings.os == "Linux" or self.settings.os == "Macos":
             libs = 'LIBS="-liconv %s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
+            if self.settings.os == "Linux":
+                libs = libs + ' -lpthread'
             ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
             archflag = "-m32" if self.settings.arch == "x86" else ""
             cflags = 'CFLAGS="-fPIC %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags))
