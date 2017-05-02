@@ -43,9 +43,10 @@ class LibmicrohttpdConan(ConanFile):
             return
 
         if self.settings.os == "Linux" or self.settings.os == "Macos":
-            libs = 'LIBS="-liconv %s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
+            libs = 'LIBS="-liconv %s' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
             if self.settings.os == "Linux":
-                libs = libs + ' -lpthread'
+                libs = libs + ' -pthread'
+            libs = libs+'"'  # TODO there has got to be a better way to do this.
             ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
             archflag = "-m32" if self.settings.arch == "x86" else ""
             cflags = 'CFLAGS="-fPIC %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags))
@@ -86,7 +87,6 @@ class LibmicrohttpdConan(ConanFile):
             gcrypt_path = ""
             gnutls_path = ""
             for path in self.deps_cpp_info.lib_paths:
-                print path
                 if "libgcrypt" in path:
                     gcrypt_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
                 if "gnutls" in path:
