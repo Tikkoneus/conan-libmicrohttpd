@@ -43,14 +43,17 @@ class LibmicrohttpdConan(ConanFile):
             return
 
         if self.settings.os == "Linux" or self.settings.os == "Macos":
-            libs = 'LIBS="-liconv %s' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
-            if self.settings.os == "Linux":
-                libs = libs + ' -pthread'
-            libs = libs+'"'  # TODO there has got to be a better way to do this.
+            libs = 'LIBS="-liconv %s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
             ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
             archflag = "-m32" if self.settings.arch == "x86" else ""
-            cflags = 'CFLAGS="-fPIC %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags))
-            cpp_flags = 'CPPFLAGS="%s %s"' % (archflag, " ".join(self.deps_cpp_info.cppflags))
+            cflags = 'CFLAGS="-fPIC %s %s' % (archflag, " ".join(self.deps_cpp_info.cflags))
+            if self.settings.os == "Linux":
+                cflags = cflags + ' -pthread'
+            cflags = cflags + '"'
+            cpp_flags = 'CPPFLAGS="%s %s' % (archflag, " ".join(self.deps_cpp_info.cppflags))
+            if self.settings.os == "Linux":
+                cpp_flags = cpp_flags + ' -pthread'
+            cpp_flags = cpp_flags + '"'
             command = "env %s %s %s %s" % (libs, ldflags, cflags, cpp_flags)
         # elif self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
         #     cl_args = " ".join(['/I"%s"' % lib for lib in self.deps_cpp_info.include_paths])
@@ -121,6 +124,4 @@ class LibmicrohttpdConan(ConanFile):
         self.copy(pattern="*.lib", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
         
     def package_info(self):
-        self.cpp_info.libs = ['microhttpd']
-
-
+        self.cpp_info.libs = ['microhttpd', 'pthread']
