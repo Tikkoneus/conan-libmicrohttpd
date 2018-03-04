@@ -1,15 +1,17 @@
-from conans import ConanFile
-import os, shutil
-from conans.tools import download, unzip, replace_in_file, check_md5
-from conans import CMake
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from conans import ConanFile, AutoToolsBuildEnvironment, tools
+import os
+import subprocess
 
 
 class LibmicrohttpdConan(ConanFile):
     name = "libmicrohttpd"
     version = "0.9.51"
-    branch = "master"
-    ZIP_FOLDER_NAME = "libmicrohttpd-%s" % version
-    generators = "cmake"
+    url = "http://github.com/DEGoodmanWilson/conan-libmicrohttpd"
+    description = "A small C library that is supposed to make it easy to run an HTTP server as part of another application."
+    license = "https://www.gnu.org/software/libmicrohttpd/manual/html_node/GNU_002dLGPL.html"
     settings =  "os", "compiler", "arch", "build_type"
     options = {"shared": [True, False],
                "disable_https": [True, False],
@@ -17,111 +19,77 @@ class LibmicrohttpdConan(ConanFile):
                "disable_postprocessor": [True, False],
                "disable_dauth": [True, False],
                "disable_epoll": [True, False]}
-    url = "http://github.com/DEGoodmanWilson/conan-libmicrohttpd"
-    default_options = "shared=False", "disable_https=False", "disable_messages=False", \
-                      "disable_postprocessor=False", "disable_dauth=False", "disable_epoll=False"
+               #TODO add in non-binary flags
+    default_options = "shared=False",\
+                      "disable_https=False",\
+                      "disable_messages=False",\
+                      "disable_postprocessor=False",\
+                      "disable_dauth=False",\
+                      "disable_epoll=False"
+
 
     def source(self):
-        zip_name = "libmicrohttpd-%s.tar.gz" % self.version
-        download("http://ftp.gnu.org/gnu/libmicrohttpd/%s" % zip_name, zip_name)
-        check_md5(zip_name, "452f6a4cef08f23f88915b86bde4d9d6")
-        unzip(zip_name)
-        os.unlink(zip_name)
+        zip_name = "{0}-{1}.tar.gz".format(self.name, self.version)
+        tools.download("http://ftp.gnu.org/gnu/{0}/{1}".format(self.name, zip_name), zip_name)
+        tools.untargz(zip_name)
+
+        extracted_dir = "{0}-{1}".format(self.name, self.version)
+        os.rename(extracted_dir, "sources")
 
     def config(self):
-        del self.settings.compiler.libcxx
+        del self.settings.compiler.libcxx # TODO why?
 
         if not self.options.disable_https:
-            self.requires.add("gnutls/3.4.16@DEGoodmanWilson/testing", private=False)
-            self.requires.add("libgcrypt/1.7.3@DEGoodmanWilson/testing", private=False)
+            self.requires.add("gnutls/3.6.2@DEGoodmanWilson/stable", private=False)
+            self.requires.add("libgcrypt/1.7.3@DEGoodmanWilson/stable", private=False)
 
-    def generic_env_configure_vars(self, verbose=False):
-        """Reusable in any lib with configure!!"""
 
-        if self.settings.os == "Windows":
-            self.output.fatal("Cannot build on Windows, sorry!")
-            return
-
-        if self.settings.os == "Linux" or self.settings.os == "Macos":
-            libs = 'LIBS="-liconv %s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
-            ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
-            archflag = "-m32" if self.settings.arch == "x86" else ""
-            cflags = 'CFLAGS="-fPIC %s %s' % (archflag, " ".join(self.deps_cpp_info.cflags))
-            if self.settings.os == "Linux":
-                cflags = cflags + ' -pthread'
-            cflags = cflags + '"'
-            cpp_flags = 'CPPFLAGS="%s %s' % (archflag, " ".join(self.deps_cpp_info.cppflags))
-            if self.settings.os == "Linux":
-                cpp_flags = cpp_flags + ' -pthread'
-            cpp_flags = cpp_flags + '"'
-            command = "env %s %s %s %s" % (libs, ldflags, cflags, cpp_flags)
-        # elif self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
-        #     cl_args = " ".join(['/I"%s"' % lib for lib in self.deps_cpp_info.include_paths])
-        #     lib_paths= ";".join(['"%s"' % lib for lib in self.deps_cpp_info.lib_paths])
-        #     command = "SET LIB=%s;%%LIB%% && SET CL=%s" % (lib_paths, cl_args)
-        #     if verbose:
-        #         command += " && SET LINK=/VERBOSE"
-        
-        return command
-       
     def build(self):
-        if self.settings.os == "Windows":
-            self.output.fatal("Cannot build on Windows, sorry!")
-            return # no can do boss!
+        if self.settings.compiler == 'Visual Studio':
+            # self.build_vs()
+            self.output.fatal("No windows support yet. Sorry. Help a fellow out and contribute back?")
 
-        self.build_with_configure()
-            
-        
-    def build_with_configure(self):
-        config_options_string = ""
+        with tools.chdir("sources"):
 
-        for option_name in self.options.values.fields:
-            activated = getattr(self.options, option_name)
-            if activated:
-                self.output.info("Activated option! %s" % option_name)
-                config_options_string += " --%s" % option_name.replace("_", "-")
+            env_build = AutoToolsBuildEnvironment(self)
+            env_build.fpic = True
+            env_build.libs.append("pthread")
 
-        shared_flags = "--disable-shared"
-        if self.options.shared: shared_flags = "--enable-shared"
+            config_args = []
+            for option_name in self.options.values.fields:
+                if(option_name == "shared"):
+                    if(getattr(self.options, "shared")):
+                        config_args.append("--enable-shared")
+                        config_args.append("--disable-static")
+                    else:
+                        config_args.append("--enable-static")
+                        config_args.append("--disable-shared")
+                else:
+                    activated = getattr(self.options, option_name)
+                    if activated:
+                        self.output.info("Activated option! %s" % option_name)
+                        config_args.append("--%s" % option_name)
 
-	# add gnutls and gcrypt install paths
-        additional_opts = ""
-        if not self.options.disable_https:
-            gcrypt_path = ""
-            gnutls_path = ""
-            for path in self.deps_cpp_info.lib_paths:
-                if "libgcrypt" in path:
-                    gcrypt_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
-                if "gnutls" in path:
-                    gnutls_path = '/lib'.join(path.split("/lib")[0:-1]) #remove the final /lib. There are probably better ways to do this.
-            additional_opts = "--with-libgcrypt-prefix=%s --with-gnutls=%s"%(gcrypt_path, gnutls_path)
+            config_args.append("--enable-messages")
 
-        for path in self.deps_cpp_info.include_paths:
-            if "nettle" in path:
-                nettle_include_path = path
-            elif "gmp" in path:
-                gmp_include_path = path
-
-        configure_command = "cd %s && %s ./configure --enable-messages --enable-static %s %s %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), shared_flags, config_options_string, additional_opts)
-        
-        self.output.warn(configure_command)
-        self.run(configure_command)
-        self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
-       
+            # This is a terrible hack to make cross-compiling on Travis work
+            if (self.settings.arch=='x86' and self.settings.os=='Linux'):
+                env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
+            else:
+                env_build.configure(args=config_args)
+            env_build.make()
 
     def package(self):
-        if self.settings.os == "Windows":
-            self.output.fatal("Cannot build on Windows, sorry!")
-            return
+        self.copy(pattern="COPYING*", src="sources")
+        self.copy("*.h", "include", "sources/src/include", keep_path=True)
+        # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
+        self.copy(pattern="*.lib", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+        self.copy(pattern="*.a", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+        self.copy(pattern="*.so*", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+        self.copy(pattern="*.dylib", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
 
-        self.copy("*.h", "include", "%s/src/include" % (self.ZIP_FOLDER_NAME), keep_path=True)
-        if self.options.shared:
-            self.copy(pattern="*.so*", dst="lib", src=self.ZIP_FOLDER_NAME, keep_path=False)
-            self.copy(pattern="*.dll*", dst="bin", src=self.ZIP_FOLDER_NAME, keep_path=False)
-        else:
-            self.copy(pattern="*.a", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
-        
-        self.copy(pattern="*.lib", dst="lib", src="%s" % self.ZIP_FOLDER_NAME, keep_path=False)
         
     def package_info(self):
-        self.cpp_info.libs = ['microhttpd', 'pthread']
+        self.cpp_info.libs = tools.collect_libs(self)
+
+
