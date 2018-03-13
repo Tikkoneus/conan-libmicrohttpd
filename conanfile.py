@@ -91,5 +91,8 @@ class LibmicrohttpdConan(ConanFile):
         
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        if not self.settings.os == "Windows":
+            self.cpp_info.cppflags = ["-pthread"]
+
 
 
