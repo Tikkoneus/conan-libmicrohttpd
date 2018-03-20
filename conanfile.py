@@ -55,7 +55,18 @@ class LibmicrohttpdConan(ConanFile):
             env_build.fpic = True
             env_build.libs.append("pthread")
 
+
             config_args = []
+
+            # add gnutls and gcrypt install paths
+            if not self.options.disable_https:
+                for path in self.deps_cpp_info.lib_paths:
+                    if "libgcrypt" in path:
+                        config_args.append("--with-libgcrypt-prefix={0}".format('/lib'.join(path.split("/lib")[0:-1]))) #remove the final /lib. There are probably better ways to do this.
+                    if "gnutls" in path:
+                        config_args.append("--with-gnutls={0}".format('/lib'.join(path.split("/lib")[0:-1]))) #remove the final /lib. There are probably better ways to do this.
+
+            # add user options
             for option_name in self.options.values.fields:
                 if(option_name == "shared"):
                     if(getattr(self.options, "shared")):
