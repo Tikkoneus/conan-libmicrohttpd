@@ -27,7 +27,6 @@ class LibmicrohttpdConan(ConanFile):
                       "disable_dauth=False",\
                       "disable_epoll=False"
 
-
     def source(self):
         zip_name = "{0}-{1}.tar.gz".format(self.name, self.version)
         tools.download("http://ftp.gnu.org/gnu/{0}/{1}".format(self.name, zip_name), zip_name)
@@ -36,8 +35,9 @@ class LibmicrohttpdConan(ConanFile):
         extracted_dir = "{0}-{1}".format(self.name, self.version)
         os.rename(extracted_dir, "sources")
 
-    def config(self):
-        del self.settings.compiler.libcxx # TODO why?
+    def configure(self):
+        # Because this is pure C
+        del self.settings.compiler.libcxx
 
         if not self.options.disable_https:
             self.requires.add("gnutls/3.6.2@DEGoodmanWilson/stable", private=False)
