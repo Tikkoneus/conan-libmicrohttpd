@@ -8,7 +8,7 @@ import subprocess
 
 class LibmicrohttpdConan(ConanFile):
     name = "libmicrohttpd"
-    version = "0.9.51"
+    version = "0.9.71"
     url = "http://github.com/DEGoodmanWilson/conan-libmicrohttpd"
     description = "A small C library that is supposed to make it easy to run an HTTP server as part of another application."
     license = "https://www.gnu.org/software/libmicrohttpd/manual/html_node/GNU_002dLGPL.html"
