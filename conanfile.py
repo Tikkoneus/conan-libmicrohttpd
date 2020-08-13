@@ -21,7 +21,7 @@ class LibmicrohttpdConan(ConanFile):
                "disable_epoll": [True, False]}
                #TODO add in non-binary flags
     default_options = "shared=False",\
-                      "disable_https=False",\
+                      "disable_https=True",\
                       "disable_messages=False",\
                       "disable_postprocessor=False",\
                       "disable_dauth=False",\
