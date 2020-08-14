@@ -21,12 +21,21 @@ class LibmicrohttpdConan(ConanFile):
                "disable_dauth": [True, False],
                "disable_epoll": [True, False]}
                #TODO add in non-binary flags
-    default_options = "shared=False",\
-                      "disable_https=False",\
-                      "disable_messages=False",\
-                      "disable_postprocessor=False",\
-                      "disable_dauth=False",\
-                      "disable_epoll=False"
+    default_options = ""
+    if platform.system() == "Windows":
+        default_options = "shared=False",\
+                          "disable_https=True",\
+                          "disable_messages=False",\
+                          "disable_postprocessor=False",\
+                          "disable_dauth=True",\
+                          "disable_epoll=False"
+    else:
+        default_options = "shared=False",\
+                          "disable_https=False",\
+                          "disable_messages=False",\
+                          "disable_postprocessor=False",\
+                          "disable_dauth=False",\
+                          "disable_epoll=False"
 
     def source(self):
         zip_name = "{0}-{1}.tar.gz".format(self.name, self.version)
@@ -50,16 +59,15 @@ class LibmicrohttpdConan(ConanFile):
             zip_name = "{0}-{1}-w32-bin.zip".format(self.name, self.version)
             if( not os.path.isfile(zip_name) ):
                 tools.download("http://ftp.gnu.org/gnu/{0}/{1}".format(self.name, zip_name), zip_name)
-            try:
-                # apparently python simply doesn't support zip format 9,
-                # (pkware's proprietary format), only format 8.
-                # this will fail because gnu is zipping with format 9
-                tools.unzip(zip_name)
-            except:
-                # so when it does, try calling into 7z directly
-                sevenzip = "C:\\Program Files\\7-Zip\\7z.exe"
-                #subprocess.Popen([sevenzip, "x", f"{zip_name}", f"-oprebuilt", "-y"])
-                subprocess.Popen([sevenzip, "x", f"{zip_name}", "-y"])
+
+            # apparently python simply doesn't support zip format 9,
+            # (pkware's proprietary format), only format 8.
+            # this will fail because gnu is zipping with format 9
+            # tools.unzip(zip_name)
+            # so when it does, try calling into 7z directly
+            sevenzip = "C:\\Program Files\\7-Zip\\7z.exe"
+            #subprocess.Popen([sevenzip, "x", f"{zip_name}", f"-oprebuilt", "-y"])
+            subprocess.Popen([sevenzip, "x", f"{zip_name}", "-y"]).wait()
 
             extracted_dir = "{0}-{1}-w32-bin".format(self.name, self.version)
             os.rename(extracted_dir, "prebuilt")
