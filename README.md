@@ -3,7 +3,7 @@
 
 [Conan.io](https://conan.io) package for libmicrohttpd library
 
-The packages generated with this **conanfile** can be found in [conan.io](https://conan.io/source/DEGoodmanWilson/0.9.51/DEGoodmanWilson/stable).
+The packages generated with this **conanfile** can be found in [bintray.com](https://conan.io/source/DEGoodmanWilson/0.9.51/DEGoodmanWilson/stable).
 
 ## Build packages
 
