@@ -3,13 +3,14 @@
 
 from conans import ConanFile, AutoToolsBuildEnvironment, tools
 import os
+import platform
 import subprocess
 
 
 class LibmicrohttpdConan(ConanFile):
     name = "libmicrohttpd"
-    version = "0.9.71"
-    url = "http://github.com/DEGoodmanWilson/conan-libmicrohttpd"
+    version = "0.9.65"
+    url = "http://github.com/Tikkoneus/conan-libmicrohttpd"
     description = "A small C library that is supposed to make it easy to run an HTTP server as part of another application."
     license = "https://www.gnu.org/software/libmicrohttpd/manual/html_node/GNU_002dLGPL.html"
     settings =  "os", "compiler", "arch", "build_type"
@@ -21,7 +22,7 @@ class LibmicrohttpdConan(ConanFile):
                "disable_epoll": [True, False]}
                #TODO add in non-binary flags
     default_options = "shared=False",\
-                      "disable_https=True",\
+                      "disable_https=False",\
                       "disable_messages=False",\
                       "disable_postprocessor=False",\
                       "disable_dauth=False",\
@@ -45,6 +46,25 @@ class LibmicrohttpdConan(ConanFile):
 
 
     def build(self):
+        if platform.system() == "Windows":
+            zip_name = "{0}-{1}-w32-bin.zip".format(self.name, self.version)
+            if( not os.path.isfile(zip_name) ):
+                tools.download("http://ftp.gnu.org/gnu/{0}/{1}".format(self.name, zip_name), zip_name)
+            try:
+                # apparently python simply doesn't support zip format 9,
+                # (pkware's proprietary format), only format 8.
+                # this will fail because gnu is zipping with format 9
+                tools.unzip(zip_name)
+            except:
+                # so when it does, try calling into 7z directly
+                sevenzip = "C:\\Program Files\\7-Zip\\7z.exe"
+                #subprocess.Popen([sevenzip, "x", f"{zip_name}", f"-oprebuilt", "-y"])
+                subprocess.Popen([sevenzip, "x", f"{zip_name}", "-y"])
+
+            extracted_dir = "{0}-{1}-w32-bin".format(self.name, self.version)
+            os.rename(extracted_dir, "prebuilt")
+
+            return
 
         with tools.chdir("sources"):
 
@@ -88,13 +108,20 @@ class LibmicrohttpdConan(ConanFile):
             env_build.make()
 
     def package(self):
-        self.copy(pattern="COPYING*", src="sources")
-        self.copy("*.h", "include", "sources/src/include", keep_path=True)
-        # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
-        self.copy(pattern="*.a", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
-        self.copy(pattern="*.dylib", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+        if platform.system() == "Windows":
+            self.copy(pattern="COPYING*", src="prebuilt")
+            d = "prebuilt/x86_64/VS2019/Release-static"
+            self.copy("*.h", "include", d, keep_path=True)
+            self.copy("*.lib", "lib", d, keep_path=True)
+            #if(self.options.shared):
+        else:
+            self.copy(pattern="COPYING*", src="sources")
+            self.copy("*.h", "include", "sources/src/include", keep_path=True)
+            # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
+            self.copy(pattern="*.lib", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+            self.copy(pattern="*.a", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+            self.copy(pattern="*.so*", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
+            self.copy(pattern="*.dylib", dst="lib", src="sources/src/microhttpd/.libs", keep_path=False)
 
         
     def package_info(self):
