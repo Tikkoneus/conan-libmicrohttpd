@@ -14,22 +14,20 @@ class LibmicrohttpdConan(ConanFile):
     description = "A small C library that is supposed to make it easy to run an HTTP server as part of another application."
     license = "https://www.gnu.org/software/libmicrohttpd/manual/html_node/GNU_002dLGPL.html"
     settings =  "os", "compiler", "arch", "build_type"
-    options = {"shared": [True, False],
-               "disable_https": [True, False],
-               "disable_messages": [True, False],
-               "disable_postprocessor": [True, False],
-               "disable_dauth": [True, False],
-               "disable_epoll": [True, False]}
-               #TODO add in non-binary flags
+    options = {}
     default_options = ""
     if platform.system() == "Windows":
-        default_options = "shared=False",\
-                          "disable_https=True",\
-                          "disable_messages=False",\
-                          "disable_postprocessor=False",\
-                          "disable_dauth=True",\
-                          "disable_epoll=False"
+        # currently using pre-built binaries so no build options are available
+        options = {"shared": [True, False]}
+        default_options = "shared=False"
     else:
+        options = {"shared": [True, False],
+                   "disable_https": [True, False],
+                   "disable_messages": [True, False],
+                   "disable_postprocessor": [True, False],
+                   "disable_dauth": [True, False],
+                   "disable_epoll": [True, False]}
+                   #TODO add in non-binary flags
         default_options = "shared=False",\
                           "disable_https=False",\
                           "disable_messages=False",\
@@ -46,6 +44,9 @@ class LibmicrohttpdConan(ConanFile):
         os.rename(extracted_dir, "sources")
 
     def configure(self):
+        if platform.system() == "Windows":
+            return
+
         # Because this is pure C
         del self.settings.compiler.libcxx
 
