@@ -119,10 +119,33 @@ class LibmicrohttpdConan(ConanFile):
     def package(self):
         if platform.system() == "Windows":
             self.copy(pattern="COPYING*", src="prebuilt")
-            d = "prebuilt/x86_64/VS2019/Release-static"
+            compiler = ""
+            if self.settings.compiler == "Visual Studio":
+                if self.settings.compiler.version == "16":
+                    compiler = "VS2019"
+                elif self.settings.compiler.version == "15":
+                    compiler = "VS2019"
+                else:
+                    self.output.error(f"Unsupported MSVC version `{self.settings.compiler.version}`, please see https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest-w32-bin.zip for what pre-built compiler binaries are available.")
+            elif self.settings.compiler == "gcc":
+                compiler = "MinGW"
+            else:
+                self.output.error(f"Unsupported compiler `{self.settings.compiler}`, please see https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest-w32-bin.zip for what pre-built compiler binaries are available.")
+
+            shared = "static"
+            if self.options.shared:
+                shared = "dll"
+
+            if not self.settings.build_type in ["Release", "Debug"]:
+                self.output.error(f"Unsupported build type `{self.settings.build_type}`, please see https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest-w32-bin.zip for what pre-built compiler binaries are available.")
+                
+            d = f"prebuilt/{self.settings.arch}/{compiler}/{self.settings.build_type}-{shared}"
             self.copy("*.h", "include", d, keep_path=True)
             self.copy("*.lib", "lib", d, keep_path=True)
-            #if(self.options.shared):
+            self.copy("*.dll", "lib", d, keep_path=True)
+            self.copy("*.exp", "lib", d, keep_path=True)
+            self.copy("*.ilk", "lib", d, keep_path=True)
+            self.copy("*.pdb", "lib", d, keep_path=True)
         else:
             self.copy(pattern="COPYING*", src="sources")
             self.copy("*.h", "include", "sources/src/include", keep_path=True)
